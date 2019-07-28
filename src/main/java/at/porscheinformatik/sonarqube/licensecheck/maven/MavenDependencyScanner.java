@@ -31,6 +31,9 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonar.api.batch.fs.FileSystem;
+import org.sonar.api.batch.fs.InputFile;
+import org.sonar.api.batch.sensor.SensorContext;
 
 import at.porscheinformatik.sonarqube.licensecheck.Dependency;
 import at.porscheinformatik.sonarqube.licensecheck.interfaces.Scanner;
@@ -55,11 +58,14 @@ public class MavenDependencyScanner implements Scanner
     }
 
     @Override
-    public Set<Dependency> scan(File moduleDir)
+    public Set<Dependency> scan(SensorContext context)
     {
-        if (!new File(moduleDir, "pom.xml").exists())
+        FileSystem fs = context.fileSystem();
+        InputFile pomFile = fs.inputFile(fs.predicates().hasRelativePath("pom.xml"));
+
+        if (pomFile == null)
         {
-            LOGGER.info("No pom.xml file found in {} - skipping Maven dependency scan", moduleDir.getPath());
+            LOGGER.info("No pom.xml file found in {} - skipping Maven dependency scan", fs.baseDir());
             return Collections.emptySet();
         }
 
@@ -80,7 +86,7 @@ public class MavenDependencyScanner implements Scanner
             }
         }
 
-        return readDependencyList(moduleDir, userSettings, globalSettings)
+        return readDependencyList(fs.baseDir(), userSettings, globalSettings)
             .map(this::mapMavenDependencyToLicense)
             .map(this.loadLicenseFromPom(mavenLicenseService.getLicenseMap(), userSettings, globalSettings))
             .collect(Collectors.toSet());

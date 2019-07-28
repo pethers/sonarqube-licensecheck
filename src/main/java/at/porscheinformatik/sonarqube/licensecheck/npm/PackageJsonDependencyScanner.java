@@ -16,6 +16,9 @@ import javax.json.JsonReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonar.api.batch.fs.FileSystem;
+import org.sonar.api.batch.fs.InputFile;
+import org.sonar.api.batch.sensor.SensorContext;
 
 import at.porscheinformatik.sonarqube.licensecheck.Dependency;
 import at.porscheinformatik.sonarqube.licensecheck.interfaces.Scanner;
@@ -32,26 +35,27 @@ public class PackageJsonDependencyScanner implements Scanner
     }
 
     @Override
-    public Set<Dependency> scan(File moduleDir)
+    public Set<Dependency> scan(SensorContext context)
     {
-        File packageJsonFile = new File(moduleDir, "package.json");
+        FileSystem fs = context.fileSystem();
+        InputFile packageJsonFile = fs.inputFile(fs.predicates().hasRelativePath(("package.json")));
 
-        if (!packageJsonFile.exists())
+        if (packageJsonFile == null)
         {
-            LOGGER.info("No package.json file found in {} - skipping NPM dependency scan", moduleDir.getPath());
+            LOGGER.info("No package.json file found in {} - skipping NPM dependency scan", fs.baseDir());
             return Collections.emptySet();
         }
 
         LOGGER.info("Scanning for NPM dependencies");
 
-        return dependencyParser(moduleDir, packageJsonFile);
+        return dependencyParser(fs.baseDir(), packageJsonFile);
     }
 
-    private Set<Dependency> dependencyParser(File baseDir, File packageJsonFile)
+    private Set<Dependency> dependencyParser(File baseDir, InputFile packageJsonFile)
     {
         Set<Dependency> dependencies = new HashSet<>();
 
-        try (InputStream fis = new FileInputStream(packageJsonFile);
+        try (InputStream fis = packageJsonFile.inputStream();
             JsonReader jsonReader = Json.createReader(fis))
         {
             JsonObject packageJson = jsonReader.readObject();

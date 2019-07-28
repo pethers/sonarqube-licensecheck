@@ -1,27 +1,29 @@
-package at.porscheinformatik.sonarqube.licensecheck;
+package at.porscheinformatik.sonarqube.licensecheck.npm;
 
-import java.io.File;
-import java.util.Set;
-
-import org.junit.Test;
-
-import at.porscheinformatik.sonarqube.licensecheck.interfaces.Scanner;
-import at.porscheinformatik.sonarqube.licensecheck.npm.PackageJsonDependencyScanner;
-
+import static at.porscheinformatik.sonarqube.licensecheck.TestUtils.createSensorContext;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Set;
+
+import org.junit.Test;
+
+import at.porscheinformatik.sonarqube.licensecheck.Dependency;
+import at.porscheinformatik.sonarqube.licensecheck.interfaces.Scanner;
+
 public class PackageJsonDependencyScannerTest
 {
-    private final File folder = new File("src/test/resources");
+    private static final File TEST_RESOURCES = new File("src/test/resources");
 
     @Test
-    public void testHappyPath()
+    public void testHappyPath() throws IOException
     {
         Scanner scanner = new PackageJsonDependencyScanner(false);
 
-        Set<Dependency> dependencies = scanner.scan(folder);
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(TEST_RESOURCES));
 
         assertThat(dependencies, hasSize(2));
         assertThat(dependencies, containsInAnyOrder(
@@ -30,11 +32,11 @@ public class PackageJsonDependencyScannerTest
     }
 
     @Test
-    public void testTransitive()
+    public void testTransitive() throws IOException
     {
         Scanner scanner = new PackageJsonDependencyScanner(true);
 
-        Set<Dependency> dependencies = scanner.scan(folder);
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(TEST_RESOURCES));
 
         assertThat(dependencies, hasSize(4));
         assertThat(dependencies, containsInAnyOrder(
@@ -45,21 +47,22 @@ public class PackageJsonDependencyScannerTest
     }
 
     @Test
-    public void testNoPackageJson()
+    public void testNoPackageJson() throws IOException
     {
         Scanner scanner = new PackageJsonDependencyScanner(false);
 
-        Set<Dependency> dependencies = scanner.scan(new File("src"));
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(new File("src")));
 
         assertThat(dependencies, hasSize(0));
     }
 
     @Test
-    public void testNoNodeModules()
+    public void testNoNodeModules() throws IOException
     {
         Scanner scanner = new PackageJsonDependencyScanner(false);
 
-        Set<Dependency> dependencies = scanner.scan(new File(folder, "node_modules/arangojs"));
+        Set<Dependency> dependencies =
+            scanner.scan(createSensorContext(new File(TEST_RESOURCES, "node_modules/arangojs")));
 
         assertThat(dependencies, hasSize(0));
     }

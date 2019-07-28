@@ -1,5 +1,6 @@
 package at.porscheinformatik.sonarqube.licensecheck.maven;
 
+import static at.porscheinformatik.sonarqube.licensecheck.TestUtils.createSensorContext;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -27,9 +28,9 @@ import at.porscheinformatik.sonarqube.licensecheck.mavenlicense.MavenLicenseServ
 public class MavenDependencyScannerTest
 {
     @Test
-    public void testLicensesAreFound()
+    public void testLicensesAreFound() throws IOException
     {
-        File moduleDir = new File(".");
+        File moduleDir = new File(".").getAbsoluteFile();
 
         final MavenDependencyService dependencyService = Mockito.mock(MavenDependencyService.class);
         when(dependencyService.getMavenDependencies()).thenReturn(
@@ -37,7 +38,7 @@ public class MavenDependencyScannerTest
         Scanner scanner = new MavenDependencyScanner(mockLicenseService(), dependencyService);
 
         // -
-        Set<Dependency> dependencies = scanner.scan(moduleDir);
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(moduleDir));
 
         assertThat(dependencies.size(), Matchers.greaterThan(0));
 
@@ -73,13 +74,13 @@ public class MavenDependencyScannerTest
 
         File moduleDir = Files.createTempDirectory("lala").toFile();
         moduleDir.deleteOnExit();
-        Set<Dependency> dependencies = scanner.scan(moduleDir);
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(moduleDir));
 
         assertThat(dependencies.size(), is(0));
     }
 
     @Test
-    public void mavenDependencyMappingHandledBeforePomLicense()
+    public void mavenDependencyMappingHandledBeforePomLicense() throws IOException
     {
         File moduleDir = new File(".");
         MavenDependencyService dependencyService = Mockito.mock(MavenDependencyService.class);
@@ -88,7 +89,7 @@ public class MavenDependencyScannerTest
         when(dependencyService.getMavenDependencies()).thenReturn(mavenDependencies);
         Scanner scanner = new MavenDependencyScanner(mockLicenseService(), dependencyService);
 
-        Set<Dependency> dependencies = scanner.scan(moduleDir);
+        Set<Dependency> dependencies = scanner.scan(createSensorContext(moduleDir));
 
         Dependency commonsLang = dependencies.stream()
             .filter(d -> "org.apache.commons:commons-lang3".equals(d.getName()))
